@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# List of Pokémon in lowercase
+POKEMON_LIST=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
+
+# Base URL of the Pokémon API
+API_URL="https://pokeapi.co/api/v2/pokemon"
+
+# Directory to store JSON files
+OUTPUT_DIR="pokemon_data_parallel"
+
+# Ensure the output directory exists
+mkdir -p "$OUTPUT_DIR"
+
+# Maximum number of parallel processes
+MAX_PARALLEL=3
+
+# Function to fetch Pokémon data
+fetch_pokemon_data() {
+    local POKEMON=$1
+    local OUTPUT_FILE="$OUTPUT_DIR/$POKEMON.json"
+
+    echo "Fetching data for $POKEMON..."
+
+    # Make the API request
+    curl -s "$API_URL/$POKEMON" -o "$OUTPUT_FILE"
+
+    if [ $? -eq 0 ]; then
+        if jq empty "$OUTPUT_FILE" 2>/dev/null; then
+            echo "Data for $POKEMON saved to $OUTPUT_FILE"
+        else
+            echo "Invalid JSON received for $POKEMON. Removing file." >> errors.txt
+            rm -f "$OUTPUT_FILE"
+        fi
+    else
+        echo "Failed to fetch data for $POKEMON" >> errors.txt
+    fi
+}
+
+# Track running processes
+PROCESSES=()
+
+# Loop through each Pokémon
+for POKEMON in "${POKEMON_LIST[@]}"; do
+    # Start the fetch in the background
+    fetch_pokemon_data "$POKEMON" &
+
+    # Add the process ID to the list
+    PROCESSES+=($!)
+
+    # Manage parallel processes
+    while [ "${#PROCESSES[@]}" -ge $MAX_PARALLEL ]; do
+        # Wait for any process to finish
+        wait -n
+
+        # Remove finished processes from the list
+        PROCESSES=($(jobs -pr))
+    done
+done
+
+# Wait for all remaining processes to complete
+wait
+
+echo "Batch processing complete. Data saved in $OUTPUT_DIR."
