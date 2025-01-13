@@ -15,6 +15,9 @@ mkdir -p "$OUTPUT_DIR"
 # Maximum number of parallel processes
 MAX_PARALLEL=3
 
+# Timeout for processes (in seconds)
+TIMEOUT=10
+
 # Function to fetch Pokémon data
 fetch_pokemon_data() {
     local POKEMON=$1
@@ -22,18 +25,27 @@ fetch_pokemon_data() {
 
     echo "Fetching data for $POKEMON..."
 
-    # Make the API request
-    curl -s "$API_URL/$POKEMON" -o "$OUTPUT_FILE"
+    # Make the API request with a timeout
+    curl -s "$API_URL/$POKEMON" -o "$OUTPUT_FILE" &
+    local CURL_PID=$!
 
-    if [ $? -eq 0 ]; then
-        if jq empty "$OUTPUT_FILE" 2>/dev/null; then
-            echo "Data for $POKEMON saved to $OUTPUT_FILE"
-        else
-            echo "Invalid JSON received for $POKEMON. Removing file." >> errors.txt
-            rm -f "$OUTPUT_FILE"
+    # Wait for the process or kill it if it exceeds the timeout
+    SECONDS=0
+    while kill -0 "$CURL_PID" 2>/dev/null; do
+        if [ $SECONDS -ge $TIMEOUT ]; then
+            echo "Process for $POKEMON exceeded timeout. Terminating..."
+            kill -9 "$CURL_PID"
+            echo "Failed to fetch data for $POKEMON due to timeout." >> errors.txt
+            return
         fi
+        sleep 1
+    done
+
+    if [ $? -eq 0 ] && jq empty "$OUTPUT_FILE" 2>/dev/null; then
+        echo "Data for $POKEMON saved to $OUTPUT_FILE"
     else
-        echo "Failed to fetch data for $POKEMON" >> errors.txt
+        echo "Failed to fetch valid data for $POKEMON" >> errors.txt
+        rm -f "$OUTPUT_FILE"
     fi
 }
 
