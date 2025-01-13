@@ -1,0 +1,27 @@
+#!/bin/bash
+
+# JSON file from Task 0
+INPUT_FILE="data.json"
+
+# Check if the input file exists
+if [ ! -f "$INPUT_FILE" ]; then
+    echo "Error: $INPUT_FILE not found. Please run the API request script first."
+    exit 1
+fi
+
+# Extract data using jq
+name=$(jq -r '.name' "$INPUT_FILE")
+height=$(jq -r '.height' "$INPUT_FILE")
+weight=$(jq -r '.weight' "$INPUT_FILE")
+types=$(jq -r '[.types[].type.name] | join(", ")' "$INPUT_FILE")
+
+# Format the output
+# Convert height to meters and weight to kilograms
+formatted_height=$(awk "BEGIN {printf \"%.1f\", $height / 10}")
+formatted_weight=$(awk "BEGIN {printf \"%.1f\", $weight / 10}")
+
+# Create the human-readable message
+output_message="$(echo "$name" | sed 's/.*/\u&/') is of type $types, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
+
+# Print the message
+echo "$output_message"
