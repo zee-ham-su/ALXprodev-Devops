@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# List of Pokémon
-POKEMON_LIST=("Bulbasaur" "Ivysaur" "Venusaur" "Charmander" "Charmeleon")
+# List of Pokémon in lowercase
+POKEMON_LIST=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 
 # Base URL of the Pokémon API
 API_URL="https://pokeapi.co/api/v2/pokemon"
@@ -14,13 +14,13 @@ mkdir -p "$OUTPUT_DIR"
 
 # Loop through each Pokémon in the list
 for POKEMON in "${POKEMON_LIST[@]}"; do
-    # Convert the Pokémon name to lowercase for the file name
-    POKEMON_FILE="$OUTPUT_DIR/$(echo "$POKEMON" | tr '[:upper:]' '[:lower:]').json"
+    # Create the filename based on the Pokémon's name
+    POKEMON_FILE="$OUTPUT_DIR/$POKEMON.json"
 
     echo "Fetching data for $POKEMON..."
 
-    # Make the API request and save the response
-    curl -s "$API_URL/$(echo "$POKEMON" | tr '[:upper:]' '[:lower:]')" -o "$POKEMON_FILE"
+    # Make the API request and save the response to the corresponding file
+    curl -s "$API_URL/$POKEMON" -o "$POKEMON_FILE"
 
     # Check if the request was successful
     if [ $? -eq 0 ]; then
