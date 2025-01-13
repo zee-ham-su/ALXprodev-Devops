@@ -12,6 +12,9 @@ OUTPUT_DIR="pokemon_data"
 # Ensure the output directory exists
 mkdir -p "$OUTPUT_DIR"
 
+# Retry limit
+RETRY_LIMIT=3
+
 # Loop through each Pokémon in the list
 for POKEMON in "${POKEMON_LIST[@]}"; do
     # Create the filename based on the Pokémon's name
@@ -19,14 +22,38 @@ for POKEMON in "${POKEMON_LIST[@]}"; do
 
     echo "Fetching data for $POKEMON..."
 
-    # Make the API request and save the response to the corresponding file
-    curl -s "$API_URL/$POKEMON" -o "$POKEMON_FILE"
+    # Initialize retry counter
+    RETRY_COUNT=0
+    SUCCESS=false
 
-    # Check if the request was successful
-    if [ $? -eq 0 ]; then
-        echo "Data for $POKEMON saved to $POKEMON_FILE"
-    else
-        echo "Failed to fetch data for $POKEMON" >> errors.txt
+    # Retry loop
+    while [ $RETRY_COUNT -lt $RETRY_LIMIT ]; do
+        # Make the API request and save the response to the corresponding file
+        curl -s "$API_URL/$POKEMON" -o "$POKEMON_FILE"
+
+        # Check if the request was successful
+        if [ $? -eq 0 ]; then
+            if jq empty "$POKEMON_FILE" 2>/dev/null; then
+                echo "Data for $POKEMON saved to $POKEMON_FILE"
+                SUCCESS=true
+                break
+            else
+                echo "Invalid JSON received for $POKEMON."
+                rm -f "$POKEMON_FILE"
+            fi
+        fi
+
+        # Increment retry counter
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+
+        # Wait before retrying
+        echo "Retrying ($RETRY_COUNT/$RETRY_LIMIT) for $POKEMON..."
+        sleep 2
+    done
+
+    # If still unsuccessful after retries, log the error
+    if [ "$SUCCESS" = false ]; then
+        echo "Failed to fetch data for $POKEMON after $RETRY_LIMIT attempts." >> errors.txt
     fi
 
     # Add a delay to handle potential rate-limiting
