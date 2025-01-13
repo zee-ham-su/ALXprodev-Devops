@@ -21,7 +21,4 @@ formatted_height=$(awk "BEGIN {printf \"%.1f\", $height / 10}")
 formatted_weight=$(awk "BEGIN {printf \"%.1f\", $weight / 10}")
 
 # Create the human-readable message
-output_message="$(echo "$name" | sed 's/.*/\u&/') is of type $types, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
-
-# Print the message
-echo "$output_message"
+echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
