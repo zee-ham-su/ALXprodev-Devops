@@ -1,24 +1,28 @@
 #!/bin/bash
 
-# JSON file from Task 0
-INPUT_FILE="data.json"
+# Input file
+JSON_FILE="data.json"
 
-# Check if the input file exists
-if [ ! -f "$INPUT_FILE" ]; then
-    echo "Error: $INPUT_FILE not found. Please run the API request script first."
+# Check if the JSON file exists
+if [ ! -f "$JSON_FILE" ]; then
+    echo "Error: $JSON_FILE not found. Please ensure the API request script was run successfully."
     exit 1
 fi
 
-# Extract data using jq
-name=$(jq -r '.name' "$INPUT_FILE")
-height=$(jq -r '.height' "$INPUT_FILE")
-weight=$(jq -r '.weight' "$INPUT_FILE")
-types=$(jq -r '[.types[].type.name] | join(", ")' "$INPUT_FILE")
+# Extract Pokémon data using jq
+NAME=$(jq -r '.name' "$JSON_FILE")
+HEIGHT=$(jq -r '.height' "$JSON_FILE")
+WEIGHT=$(jq -r '.weight' "$JSON_FILE")
+TYPE=$(jq -r '.types[0].type.name' "$JSON_FILE")
+
+# Convert height to meters (assuming height is in decimeters)
+HEIGHT_M=$(awk "BEGIN { printf \"%.1f\", $HEIGHT / 10 }")
+
+# Convert weight to kilograms (assuming weight is in hectograms)
+WEIGHT_KG=$(awk "BEGIN { printf \"%.1f\", $WEIGHT / 10 }")
 
 # Format the output
-# Convert height to meters and weight to kilograms
-formatted_height=$(awk "BEGIN {printf \"%.1f\", $height / 10}")
-formatted_weight=$(awk "BEGIN {printf \"%.1f\", $weight / 10}")
+OUTPUT="$NAME is of type $TYPE, weighs ${WEIGHT_KG}kg, and is ${HEIGHT_M}m tall."
 
-# Create the human-readable message
-echo "$name is of type $type, weighs ${formatted_weight}kg, and is ${formatted_height}m tall."
+# Display the output
+echo "$OUTPUT"
